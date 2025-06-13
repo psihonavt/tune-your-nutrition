@@ -1,13 +1,14 @@
 [project]
-name = "tune-your-nutrition"
+name = "nutrition101"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = "==3.13.3"
 dependencies = [
-    "anthropic>=0.52.2",
-    "ipdb>=0.13.13",
-    "ipython>=9.3.0",
-    "magentic>=0.39.3",
-    "pydantic>=2.11.5",
+    "anthropic==0.52.2",
+    "click>=8.2.1",
+    "ipdb==0.13.13",
+    "ipython==9.3.0",
+    "magentic==0.39.3",
+    "pydantic==2.11.5",
 ]
