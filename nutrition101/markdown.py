@@ -355,6 +355,9 @@ class NotesManipulator:
         n101_sections.extend([daily_anchor, daily_breakdown_table])
         return DailyEntry(date=daily_entry.date, sections=n101_sections)
 
+    def clear_breakdowns(self, date: date) -> None:
+        self._n101_entries_map[date] = DailyEntry(date=date, sections=[])
+
     def add_meal_breakdown(
         self, date: date, section: DailyEntrySection, breakdown: NBreakdown
     ) -> None:
@@ -373,9 +376,9 @@ class NotesManipulator:
         )
         self._n101_entries_map[date] = n101_daily_entry
 
-    def do_meals_have_breakdown(
+    def get_meal_breakdowns(
         self, date: date
-    ) -> list[tuple[DailyEntrySection, bool]]:
+    ) -> list[tuple[DailyEntrySection, DailyEntryNBreakdownSubSection | None]]:
         daily_entry = self._entries_map[date]
         n101_daily_entry = self._n101_entries_map.get(
             date, DailyEntry(date=date, sections=[])
@@ -383,7 +386,7 @@ class NotesManipulator:
         result = []
         for section in daily_entry.sections:
             if section.is_meal:
-                has_breakdown = False
+                n_breakdown = None
                 n101_anchor = next(
                     (
                         ns
@@ -405,13 +408,13 @@ class NotesManipulator:
                                 )
                             )
                             if breakdown_section.meal_hash == section.get_meal_hash():
-                                has_breakdown = True
-                result.append((section, has_breakdown))
+                                n_breakdown = breakdown_section
+                result.append((section, n_breakdown))
         return result
 
     def is_all_meals_have_breakdowns(self, date: date) -> bool:
         return all(
-            has_breakdown for _, has_breakdown in self.do_meals_have_breakdown(date)
+            n_breakdown is not None for _, n_breakdown in self.get_meal_breakdowns(date)
         )
 
 

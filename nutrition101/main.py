@@ -47,25 +47,34 @@ def enrich_notes(
                 f"{daily_entry.date.isoformat()} already has all meal breakdowns, skipping."
             )
             continue
-        meals_and_breakdowns = nm.do_meals_have_breakdown(daily_entry.date)
-        meal_descriptions = [
-            (ms.get_meal_description(), ms)
-            for ms, has_breakdown in meals_and_breakdowns
-            if not has_breakdown or override_exitsting
+
+        nm.clear_breakdowns(daily_entry.date)
+
+        meals_and_breakdowns = nm.get_meal_breakdowns(daily_entry.date)
+        meals_to_get_breakdowns = [
+            ms for ms, n_b in meals_and_breakdowns if n_b is None or override_exitsting
         ]
-        print("processing", daily_entry.date, meal_descriptions)
+        print("processing", daily_entry.date, meals_to_get_breakdowns)
+
         meal_breakdowns_llm = LLM.get_meals_breakdowns(
-            [md for md, _ in meal_descriptions], kbs
+            [ms.get_meal_description() for ms in meals_to_get_breakdowns], kbs
         )
+
         try:
-            assert len(meal_breakdowns_llm) == len(meal_descriptions)
+            assert len(meal_breakdowns_llm) == len(meals_and_breakdowns)
         except AssertionError:
             from ipdb import set_trace
 
             set_trace()
             raise
-        for (_, ms), mb_llm in zip(meal_descriptions, meal_breakdowns_llm):
-            nm.add_meal_breakdown(daily_entry.date, ms, mb_llm)
+
+        for ms, n_b_section in meals_and_breakdowns:
+            if ms in meals_to_get_breakdowns:
+                n_b = meal_breakdowns_llm[meals_to_get_breakdowns.index(ms)]
+            else:
+                assert n_b_section is not None
+                n_b = n_b_section.breakdown
+            nm.add_meal_breakdown(daily_entry.date, ms, n_b)
 
     if not write_notes_to:
         nm.write_notes(notes)
