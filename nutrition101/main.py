@@ -20,38 +20,40 @@ def cli(): ...
 
 @click.command()
 @click.argument("notes", type=click.Path(exists=True))
+@click.argument("nutrition-dir")
 @click.option("--only-date", type=click.DateTime(["%m/%d/%Y"]))
 @click.option("--write-notes-to", type=click.Path(writable=True))
 @click.option("--override-exitsting", is_flag=True)
 def enrich_notes(
     notes: str,
+    nutrition_dir: str,
     only_date: datetime | None,
     write_notes_to: str | None,
     override_exitsting: bool,
 ):
-    nm = NotesManipulator()
+    nm = NotesManipulator(notes_file=notes, nutrition_dir=nutrition_dir)
     with open(
-        "/Users/cake-icing/Documents/amkoval/daily/2025/00 Knowledge Base.md"
+        "/Users/cake-icing/Documents/amkoval/daily/2025/n101/knowledge_base.md"
     ) as f:
         kbs = f.read()
 
-    nm.read_notes(notes)
-    for daily_entry in nm.entries:
+    for daily_entry in nm.source_entries:
         if only_date and daily_entry.date != only_date.date():
             click.echo(f"Skipping {daily_entry.date.isoformat()}")
             continue
 
-        if daily_entry.is_all_meals_have_breakdowns() and not override_exitsting:
+        if nm.is_all_meals_have_breakdowns(daily_entry.date) and not override_exitsting:
             click.echo(
-                f"{daily_entry.date.isoformat()} alread has all meal breakdowns, skipping."
+                f"{daily_entry.date.isoformat()} already has all meal breakdowns, skipping."
             )
             continue
-        meals_and_breakdowns = daily_entry.get_meals_with_breakdowns()
+        meals_and_breakdowns = nm.do_meals_have_breakdown(daily_entry.date)
         meal_descriptions = [
             (ms.get_meal_description(), ms)
-            for ms, mb in meals_and_breakdowns
-            if mb is None or override_exitsting
+            for ms, has_breakdown in meals_and_breakdowns
+            if not has_breakdown or override_exitsting
         ]
+        print("processing", daily_entry.date, meal_descriptions)
         meal_breakdowns_llm = LLM.get_meals_breakdowns(
             [md for md, _ in meal_descriptions], kbs
         )

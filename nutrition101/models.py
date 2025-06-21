@@ -3,14 +3,13 @@ from magentic.chat_model.anthropic_chat_model import AnthropicChatModel
 
 from nutrition101.domain import NBreakdown
 
-_LLM_PROMPT = """Analyze this meal descriptions and break them down into individual food items with their nutritional values. Meal descriptions are separated by '|||'.
+_LLM_PROMPT = """Analyze this meal descriptions and break them down into individual food items with their nutritional values. Meal descriptions are separated ONLY by '|||'. 
+    For example, `1 1/4 (by volume) cooked pinto beans, 3/4 (by volume) cooked rice, 1 Costco rotisserie chicken thigh, 1 tomatoe.
+1/6 zapekanka. 7 dried date, 4 dried figs.` is a SINGLE meal description, despite it having new lines and `.` in its content.
 
     Meal Descriptions: {meal_descriptions}
 
     Knowledge base: {knowledge_base_section}
-
-    Please respond with MULTIPLE arrays with breadowns for every meal description. Breakdowns MUST have the same order as meals descriptions. 
-    There MUST be the same number of breakdowns as meal descriptions; report an error if there is a mismatch!
 
     Instructions:
     - Break down the meal into individual food items/ingredients
@@ -51,5 +50,5 @@ class ClaudeNAnalyzer:
         ) -> list[NBreakdown]: ...
 
         return _get_breakdowns(
-            "|||".join(meal_descriptions) + "|||", knowledge_base_section or ""
+            "|||".join(meal_descriptions), knowledge_base_section or ""
         )

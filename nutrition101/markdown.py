@@ -2,6 +2,7 @@ import re
 from collections.abc import Sequence
 from datetime import date, datetime
 from hashlib import md5
+from pathlib import Path
 from operator import itemgetter
 from typing import Any, ClassVar
 
@@ -13,18 +14,21 @@ class DailyEntrySection(BaseModel, Sequence):
     content: str
 
     def __getitem__(self, key: Any) -> Any:
-        return self._lines[key]
+        return self.lines[key]
 
     def __len__(self) -> int:
-        return len(self._lines)
+        return len(self.lines)
 
     @property
-    def _lines(self) -> list[str]:
+    def lines(self) -> list[str]:
         return self.content.splitlines()
 
     @property
     def is_meal(self) -> bool:
-        return self.content.strip(" ").startswith("==")
+        meal_name = self[0].strip()
+        is_linked = meal_name.startswith("[[")
+        is_anchor = meal_name.startswith("#" * 6)
+        return (is_anchor or is_linked or meal_name.startswith("=")) and len(self) >= 2
 
     @property
     def is_meal_n_breakdown(self) -> bool:
@@ -33,8 +37,12 @@ class DailyEntrySection(BaseModel, Sequence):
         )
 
     @property
-    def is_meal_anchor(self) -> bool:
+    def is_breakdown_anchor(self) -> bool:
         return self[0].startswith("######")
+
+    @property
+    def has_breakdown_link(self) -> bool:
+        return self[0].startswith("[[")
 
     @property
     def is_daily_n_breakdown(self) -> bool:
@@ -52,17 +60,18 @@ class DailyEntrySection(BaseModel, Sequence):
 
     def get_meal_name(self) -> str:
         assert self.is_meal, f"Not a meal section - {self[0]}"
-        return self[0].strip(" =")
+        if self[0].startswith("[["):
+            meal_name = self[0].strip("[]").split("|")[-1]
+        elif self[0].startswith("###"):
+            meal_name = self[0].strip("# ")
+        else:
+            meal_name = self[0]
+        return meal_name.strip(" =")
 
     def get_meal_anchor(self) -> str:
-        assert self.is_meal_anchor, f"Not a meal anchor - {self[0]}"
+        assert self.is_breakdown_anchor, f"Not a meal anchor - {self[0]}"
         assert len(self) == 2, f"Not a meal anchor - {self}"
         return self[1]
-
-
-class NotesManipulator2:
-    def __init__(self) -> None:
-        self._
 
 
 class DailyEntryNBreakdownSubSection(BaseModel):
@@ -138,114 +147,51 @@ class DailyEntry(BaseModel):
     date: date
     sections: list[DailyEntrySection]
 
-    def set_meal_breakdown(
-        self, n_breakdown: NBreakdown, after_meal: DailyEntrySection
-    ) -> "DailyEntry":
-        sections = self.sections.copy()
-        assert after_meal in self.sections, "Provided meal section couldn't be found"
-        n_breakdown_table = DailyEntryNBreakdownSubSection(
-            is_daily_total=False,
-            meal_hash=after_meal.get_meal_hash(),
-            breakdown=n_breakdown,
-        ).to_md_table()
-        n_breakdown_as_section = DailyEntrySection(content=n_breakdown_table)
-        insert_idx = self.sections.index(after_meal) + 1
-        from ipdb import set_trace
-
-        set_trace()
-        if insert_idx <= len(self.sections) - 1:
-            if sections[insert_idx].is_meal_n_breakdown:
-                sections[insert_idx] = n_breakdown_as_section
-            else:
-                sections.insert(insert_idx, n_breakdown_as_section)
-        else:
-            sections.append(n_breakdown_as_section)
-        de = DailyEntry(date=self.date, sections=sections)
-        de = de._set_daily_breakdown()
-        return de
-
-    def _set_daily_breakdown(self) -> "DailyEntry":
-        sections = self.sections.copy()
-        meal_breakdowns = [
-            (
-                sections[sections.index(mb) - 1].get_meal_name(),
-                DailyEntryNBreakdownSubSection.from_md_table(mb.content).breakdown,
-            )
-            for mb in self.sections
-            if mb.is_meal_n_breakdown
-        ]
-        if not meal_breakdowns:
-            return self
-
-        daily_breakdown_table = DailyEntryNBreakdownSubSection(
-            is_daily_total=True,
-            breakdown=NBreakdown(
-                entries=[
-                    mb.get_total_as_entry(meal_name)
-                    for meal_name, mb in meal_breakdowns
-                ]
-            ),
-            meal_hash="",
-        ).to_md_table()
-        daily_breakdown = DailyEntrySection(content=daily_breakdown_table)
-        if sections[-1].is_daily_n_breakdown:
-            sections[-1] = daily_breakdown
-        else:
-            sections.append(daily_breakdown)
-        return DailyEntry(date=self.date, sections=sections)
-
     def to_md_content(self) -> str:
         md_sections = [self.date.strftime("%m/%d/%Y")]
         for section in self.sections:
             md_sections.append(section.content)
         return "\n\n".join(md_sections)
 
-    def is_all_meals_have_breakdowns(self) -> bool:
-        meals_and_breakdowns = self.get_meals_with_breakdowns()
-        return all([mb is not None for _, mb in meals_and_breakdowns])
-
-    def get_meals_with_breakdowns(
-        self,
-    ) -> list[tuple[DailyEntrySection, NBreakdown | None]]:
-        result = []
-        for section in self.sections:
-            if section.is_meal:
-                meal_breakdown = None
-                maybe_breakdown_idx = self.sections.index(section) + 1
-                if maybe_breakdown_idx <= len(self.sections) - 1:
-                    if self.sections[maybe_breakdown_idx].is_meal_n_breakdown:
-                        maybe_meal_breakdown = (
-                            DailyEntryNBreakdownSubSection.from_md_table(
-                                self.sections[maybe_breakdown_idx].content,
-                            )
-                        )
-                        if maybe_meal_breakdown.meal_hash == section.get_meal_hash():
-                            meal_breakdown = maybe_meal_breakdown.breakdown
-                result.append((section, meal_breakdown))
-        return result
-
 
 class NotesManipulator:
-    def __init__(self, md_content: str | None = None) -> None:
-        if md_content:
-            self._entries_map = {
-                de.date: de for de in self._parse_daily_entries(md_content)
-            }
+    _DAILY_BREAKDOWN: str = "daily-breakdown"
 
-    def read_notes(self, path: str) -> None:
-        with open(path) as f:
-            self._entries_map = {
-                de.date: de for de in self._parse_daily_entries(f.read())
-            }
+    def __init__(self, notes_file: str, nutrition_dir: str) -> None:
+        self._nutrition_dir = nutrition_dir
+        self._source_notes = Path(notes_file)
+        self._entries_map = {
+            de.date: de
+            for de in self._parse_daily_entries(self._source_notes.read_text())
+        }
+        self._n101_notes = Path(
+            self._source_notes.parent / self._nutrition_dir / self._source_notes.name
+        )
+        self._n101_notes.parent.mkdir(exist_ok=True)
+        self._n101_entries_map = {
+            de.date: de
+            for de in self._parse_daily_entries(
+                self._n101_notes.read_text() if self._n101_notes.exists() else ""
+            )
+        }
 
     @property
-    def entries(self) -> list[DailyEntry]:
+    def source_entries(self) -> list[DailyEntry]:
         return [de for _, de in sorted(self._entries_map.items(), key=itemgetter(0))]
 
-    def write_notes(self, path: str) -> None:
-        md_content = "\n\n".join([de.to_md_content() for de in self.entries])
-        with open(path, "w") as f:
-            f.write(md_content)
+    @property
+    def n101_entries(self) -> list[DailyEntry]:
+        return [
+            de for _, de in sorted(self._n101_entries_map.items(), key=itemgetter(0))
+        ]
+
+    def write_notes(self, notes_path: str | None) -> None:
+        destination = Path(notes_path) if notes_path else self._source_notes
+        md_content = "\n\n".join([de.to_md_content() for de in self.source_entries])
+        destination.write_text(md_content)
+
+        md_content = "\n\n".join([de.to_md_content() for de in self.n101_entries])
+        self._n101_notes.write_text(md_content)
 
     @staticmethod
     def _get_date_from_line(line: str) -> date | None:
@@ -291,6 +237,124 @@ class NotesManipulator:
             )
         return entries
 
+    @staticmethod
+    def _generate_meal_anchor(date: date, meal_name: str) -> str:
+        return f"^{meal_name}-{date.strftime('%m-%d-%Y')}"
+
+    @staticmethod
+    def _generate_meal_anchor_title(meal_name: str) -> str:
+        return f"###### {meal_name}"
+
+    def _generate_breakdown_link(self, date: date, meal_name: str) -> str:
+        return f"[[{self._nutrition_dir}/{self._n101_notes.name}#{self._generate_meal_anchor(date, meal_name)}|{meal_name}]]"
+
+    def _add_meal_anchor(
+        self, daily_entry: DailyEntry, section: DailyEntrySection
+    ) -> DailyEntry:
+        assert section.is_meal
+        sections = daily_entry.sections.copy()
+        meal_idx = sections.index(section)
+        meal_content = section.lines.copy()
+        if not section.has_breakdown_link:
+            meal_name = section.get_meal_name()
+            meal_name_anchored = self._generate_breakdown_link(
+                daily_entry.date, meal_name
+            )
+            updated_meal_section = DailyEntrySection(
+                content="\n".join([meal_name_anchored] + meal_content[1:])
+            )
+            sections[meal_idx] = updated_meal_section
+
+        daily_link_section = next(
+            (
+                section
+                for section in sections
+                if section.has_breakdown_link and self._DAILY_BREAKDOWN in section[0]
+            ),
+            None,
+        )
+        if not daily_link_section:
+            daily_link_section = DailyEntrySection(
+                content=self._generate_breakdown_link(
+                    daily_entry.date, self._DAILY_BREAKDOWN
+                )
+            )
+            sections.append(daily_link_section)
+        return DailyEntry(date=daily_entry.date, sections=sections)
+
+    def _add_meal_breakdown(
+        self,
+        daily_entry: DailyEntry,
+        source_section: DailyEntrySection,
+        breakdown: NBreakdown,
+    ) -> DailyEntry:
+        assert source_section.is_meal
+        anchor_title = self._generate_meal_anchor_title(source_section.get_meal_name())
+        n101_sections = daily_entry.sections.copy()
+        if n101_sections:
+            if n101_sections[-1].is_daily_n_breakdown:
+                assert n101_sections[-2].is_breakdown_anchor, (
+                    f"Can't detect the daily breakdown anchor {n101_sections[:-3]}"
+                )
+            n101_sections = n101_sections[:-2]
+
+        n101_section = next(
+            (s for s in daily_entry.sections if s[0] == anchor_title), None
+        )
+        if not n101_section:
+            n101_section = DailyEntrySection(
+                content=f"{anchor_title}\n{self._generate_meal_anchor(daily_entry.date, source_section.get_meal_name())}"
+            )
+            n101_sections.append(n101_section)
+
+        breakdown_section_idx = n101_sections.index(n101_section) + 1
+        breakdown_as_table = DailyEntrySection(
+            content=DailyEntryNBreakdownSubSection(
+                breakdown=breakdown,
+                is_daily_total=False,
+                meal_hash=source_section.get_meal_hash(),
+            ).to_md_table()
+        )
+        if breakdown_section_idx <= len(n101_sections) - 1:
+            if n101_sections[breakdown_section_idx].is_meal_n_breakdown:
+                n101_sections[breakdown_section_idx] = breakdown_as_table
+            else:
+                n101_sections.insert(breakdown_section_idx, breakdown_as_table)
+        else:
+            n101_sections.append(breakdown_as_table)
+
+        meal_breakdowns = [
+            (
+                n101_sections[n101_sections.index(mb) - 1].get_meal_name(),
+                DailyEntryNBreakdownSubSection.from_md_table(mb.content).breakdown,
+            )
+            for mb in n101_sections
+            if mb.is_meal_n_breakdown
+        ]
+
+        daily_breakdown_table = DailyEntrySection(
+            content=DailyEntryNBreakdownSubSection(
+                is_daily_total=True,
+                breakdown=NBreakdown(
+                    entries=[
+                        mb.get_total_as_entry(meal_name)
+                        for meal_name, mb in meal_breakdowns
+                    ]
+                ),
+                meal_hash="",
+            ).to_md_table()
+        )
+        daily_anchor = DailyEntrySection(
+            content="\n".join(
+                [
+                    self._generate_meal_anchor_title(self._DAILY_BREAKDOWN),
+                    self._generate_meal_anchor(daily_entry.date, self._DAILY_BREAKDOWN),
+                ]
+            )
+        )
+        n101_sections.extend([daily_anchor, daily_breakdown_table])
+        return DailyEntry(date=daily_entry.date, sections=n101_sections)
+
     def add_meal_breakdown(
         self, date: date, section: DailyEntrySection, breakdown: NBreakdown
     ) -> None:
@@ -298,50 +362,97 @@ class NotesManipulator:
             f"There is not daily entry for {date.isoformat()}"
         )
         daily_entry = self._entries_map[date]
-        daily_entry = daily_entry.set_meal_breakdown(breakdown, section)
+        daily_entry = self._add_meal_anchor(daily_entry, section)
         self._entries_map[date] = daily_entry
+
+        n101_daily_entry = self._n101_entries_map.get(
+            date, DailyEntry(date=date, sections=[])
+        )
+        n101_daily_entry = self._add_meal_breakdown(
+            n101_daily_entry, section, breakdown
+        )
+        self._n101_entries_map[date] = n101_daily_entry
+
+    def do_meals_have_breakdown(
+        self, date: date
+    ) -> list[tuple[DailyEntrySection, bool]]:
+        daily_entry = self._entries_map[date]
+        n101_daily_entry = self._n101_entries_map.get(
+            date, DailyEntry(date=date, sections=[])
+        )
+        result = []
+        for section in daily_entry.sections:
+            if section.is_meal:
+                has_breakdown = False
+                n101_anchor = next(
+                    (
+                        ns
+                        for ns in n101_daily_entry.sections
+                        if ns.is_meal and ns.get_meal_name() == section.get_meal_name()
+                    ),
+                    None,
+                )
+                if n101_anchor:
+                    maybe_breakdown_idx = (
+                        n101_daily_entry.sections.index(n101_anchor) + 1
+                    )
+                    if maybe_breakdown_idx <= len(n101_daily_entry.sections) - 1:
+                        next_section = n101_daily_entry.sections[maybe_breakdown_idx]
+                        if next_section.is_meal_n_breakdown:
+                            breakdown_section = (
+                                DailyEntryNBreakdownSubSection.from_md_table(
+                                    next_section.content
+                                )
+                            )
+                            if breakdown_section.meal_hash == section.get_meal_hash():
+                                has_breakdown = True
+                result.append((section, has_breakdown))
+        return result
+
+    def is_all_meals_have_breakdowns(self, date: date) -> bool:
+        return all(
+            has_breakdown for _, has_breakdown in self.do_meals_have_breakdown(date)
+        )
 
 
 if __name__ == "__main__":
-    nm = NotesManipulator(md_content=None)
-    nm.read_notes("/Users/cake-icing/Documents/amkoval/daily/2025/06 June.md")
-    de_06012025 = nm.entries[0]
+    nm = NotesManipulator(
+        notes_file="/Users/cake-icing/Documents/amkoval/daily/2025/06 June-mod.md",
+        nutrition_dir="n101_test",
+    )
+    de_06012025 = nm.source_entries[0]
 
-    nm_n = NotesManipulator(md_content=None)
-    nm_n.read_notes("/Users/cake-icing/Documents/amkoval/daily/2025/06 June-n.md")
-    from ipdb import set_trace
-
-    set_trace()
-    # breakfast_06012025 = de_06012025.sections[1]
-    # breakfast_06012025_n_breakdown = NBreakdown(
-    #     meal_hash=breakfast_06012025.get_meal_hash(),
-    #     is_daily_total=False,
-    #     entries=[
-    #         NEntry(
-    #             item="2 Eggs",
-    #             calories=15,
-    #             carbs_g=12,
-    #             sugars_g=45,
-    #             protein_g=15,
-    #             fat_g=42,
-    #             fiber_g=1,
-    #             sodium_mg=14,
-    #         ),
-    #         NEntry(
-    #             item="Bread",
-    #             calories=150,
-    #             carbs_g=24,
-    #             sugars_g=1,
-    #             protein_g=2,
-    #             fat_g=15,
-    #             fiber_g=100,
-    #             sodium_mg=300,
-    #         ),
-    #     ],
-    # )
-    # nm.add_meal_breakdown(
-    #     de_06012025.date, breakfast_06012025, breakfast_06012025_n_breakdown
-    # )
+    breakfast_06012025 = de_06012025.sections[1]
+    breakfast_06012025_n_breakdown = NBreakdown(
+        entries=[
+            NEntry(
+                item="2 Eggs",
+                calories=15,
+                carbs_g=12,
+                sugars_g=45,
+                protein_g=15,
+                fat_g=42,
+                fiber_g=1,
+                sodium_mg=14,
+            ),
+            NEntry(
+                item="Bread",
+                calories=150,
+                carbs_g=24,
+                sugars_g=1,
+                protein_g=2,
+                fat_g=15,
+                fiber_g=100,
+                sodium_mg=300,
+            ),
+        ],
+    )
+    nm.add_meal_breakdown(
+        de_06012025.date, breakfast_06012025, breakfast_06012025_n_breakdown
+    )
+    print(nm.is_all_meals_have_breakdowns(de_06012025.date))
+    print(nm.get_meals_and_breakdowns(de_06012025.date))
+    # nm.write_notes(None)
     #
     # dinner_06012025 = de_06012025.sections[3]
     # dinner_06012025_n_breakdown = NBreakdown(
