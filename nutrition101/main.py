@@ -1,5 +1,6 @@
 import configparser
-from datetime import datetime
+from datetime import datetime, date
+from pathlib import Path
 
 import click
 
@@ -18,23 +19,29 @@ def cli(): ...
 
 
 @click.command()
-@click.argument("notes", type=click.Path(exists=True))
+@click.argument("daily-notes-dir")
 @click.argument("nutrition-dir")
 @click.option("--only-date", type=click.DateTime(["%m/%d/%Y"]))
 @click.option("--write-notes-to", type=click.Path(writable=True))
 @click.option("--override-exitsting", is_flag=True)
 def enrich_notes(
-    notes: str,
+    daily_notes_dir: str,
     nutrition_dir: str,
     only_date: datetime | None,
     write_notes_to: str | None,
     override_exitsting: bool,
 ):
-    nm = NotesManipulator(notes_file=notes, nutrition_dir=nutrition_dir)
-    with open(
-        "/Users/cake-icing/Documents/amkoval/daily/2025/n101/knowledge_base.md"
-    ) as f:
-        kbs = f.read()
+    today = date.today()
+    notes_file = f"{daily_notes_dir}/{today.year}/{today.strftime('%m %B.md')}"
+    knowledge_base = f"{daily_notes_dir}/{today.year}/n101/knowledge_base.md"
+
+    nm = NotesManipulator(notes_file=notes_file, nutrition_dir=nutrition_dir)
+    if Path(knowledge_base).exists():
+        with open(knowledge_base) as f:
+            kbs = f.read()
+    else:
+        click.echo(f"knowledge_base at {knowledge_base} doesn't exist")
+        kbs = ""
 
     for daily_entry in nm.source_entries:
         if only_date and daily_entry.date != only_date.date():
@@ -75,7 +82,7 @@ def enrich_notes(
             nm.add_meal_breakdown(daily_entry.date, ms, n_b)
 
     if not write_notes_to:
-        nm.write_notes(notes)
+        nm.write_notes(notes_file)
     else:
         nm.write_notes(write_notes_to)
 
