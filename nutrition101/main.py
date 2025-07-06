@@ -1,6 +1,5 @@
 import configparser
 from datetime import datetime
-from io import TextIOWrapper
 
 import click
 
