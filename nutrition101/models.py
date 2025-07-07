@@ -3,8 +3,9 @@ from magentic.chat_model.anthropic_chat_model import AnthropicChatModel
 
 from nutrition101.domain import NBreakdown
 
-_LLM_PROMPT = """Analyze this meal descriptions and break them down into individual food items with their nutritional values. Meal descriptions are separated ONLY by '|||'. 
-    For example, `1 1/4 (by volume) cooked pinto beans, 3/4 (by volume) cooked rice, 1 Costco rotisserie chicken thigh, 1 tomatoe.
+_LLM_PROMPT = """Analyze this meal descriptions and break them down into individual food items with their nutritional values. 
+Return total sugars in sugars_g field; the field added_sugars_g is only for added/free sugar. added_sugars_g is always <= sugars_g. 
+Meal descriptions are separated ONLY by '|||'. For example, `1 1/4 (by volume) cooked pinto beans, 3/4 (by volume) cooked rice, 1 Costco rotisserie chicken thigh, 1 tomatoe.
 1/6 zapekanka. 7 dried date, 4 dried figs.` is a SINGLE meal description, despite it having new lines and `.` in its content.
 
     Meal Descriptions: {meal_descriptions}

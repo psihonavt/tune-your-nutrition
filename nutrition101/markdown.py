@@ -94,13 +94,17 @@ class DailyEntryNBreakdownSubSection(BaseModel):
         ]
         for entry in self.breakdown.entries:
             lines.append(
-                f"| {entry.item} | {entry.calories} | {entry.carbs_g} | {entry.sugars_g} | {entry.protein_g} | {entry.fat_g} | {entry.fiber_g} | {entry.sodium_mg} |"
+                f"| {entry.item} | {entry.calories} | {entry.carbs_g} | {entry.sugars_g}({entry.added_sugars_g}) | {entry.protein_g} | {entry.fat_g} | {entry.fiber_g} | {entry.sodium_mg} |"
             )
 
         if self.is_daily_total:
             total_calories = sum([e.calories for e in self.breakdown.entries])
             total_carbs = sum([e.carbs_g for e in self.breakdown.entries])
-            total_sugars = sum([e.sugars_g for e in self.breakdown.entries])
+            total_sugars_g = sum([e.sugars_g for e in self.breakdown.entries])
+            total_added_sugars_g = sum(
+                [e.added_sugars_g for e in self.breakdown.entries]
+            )
+            total_sugars = f"{total_sugars_g}({total_added_sugars_g})"
             total_protein = sum([e.protein_g for e in self.breakdown.entries])
             total_fat = sum([e.fat_g for e in self.breakdown.entries])
             total_fiber = sum([e.fiber_g for e in self.breakdown.entries])
@@ -122,15 +126,24 @@ class DailyEntryNBreakdownSubSection(BaseModel):
         meal_hash = hash_match.group(1) if hash_match else ""
         entries = []
         for line in lines[2:]:
-            item, calories, carbs_g, sugars_g, protein_g, fat_g, fiber_g, sodium_mg = (
+            item, calories, carbs_g, sugars, protein_g, fat_g, fiber_g, sodium_mg = (
                 line.split("|")[1:-1]
             )
+            sugars_match = re.match(r"(\d+)\((\d+)\)", sugars.strip())
+            if not sugars_match:
+                sugars_g = int(sugars)
+                added_sugars_g = 0
+            else:
+                sugars_g = int(sugars_match.group(1))
+                added_sugars_g = int(sugars_match.group(2))
+
             entries.append(
                 NEntry(
                     item=item,
                     calories=int(calories),
                     carbs_g=int(carbs_g),
-                    sugars_g=int(sugars_g),
+                    sugars_g=sugars_g,
+                    added_sugars_g=added_sugars_g,
                     protein_g=int(protein_g),
                     fat_g=int(fat_g),
                     fiber_g=int(fiber_g),
@@ -416,128 +429,3 @@ class NotesManipulator:
         return all(
             n_breakdown is not None for _, n_breakdown in self.get_meal_breakdowns(date)
         )
-
-
-if __name__ == "__main__":
-    nm = NotesManipulator(
-        notes_file="/Users/cake-icing/Documents/amkoval/daily/2025/06 June-mod.md",
-        nutrition_dir="n101_test",
-    )
-    de_06012025 = nm.source_entries[0]
-
-    breakfast_06012025 = de_06012025.sections[1]
-    breakfast_06012025_n_breakdown = NBreakdown(
-        entries=[
-            NEntry(
-                item="2 Eggs",
-                calories=15,
-                carbs_g=12,
-                sugars_g=45,
-                protein_g=15,
-                fat_g=42,
-                fiber_g=1,
-                sodium_mg=14,
-            ),
-            NEntry(
-                item="Bread",
-                calories=150,
-                carbs_g=24,
-                sugars_g=1,
-                protein_g=2,
-                fat_g=15,
-                fiber_g=100,
-                sodium_mg=300,
-            ),
-        ],
-    )
-    nm.add_meal_breakdown(
-        de_06012025.date, breakfast_06012025, breakfast_06012025_n_breakdown
-    )
-    print(nm.is_all_meals_have_breakdowns(de_06012025.date))
-    print(nm.get_meals_and_breakdowns(de_06012025.date))
-    # nm.write_notes(None)
-    #
-    # dinner_06012025 = de_06012025.sections[3]
-    # dinner_06012025_n_breakdown = NBreakdown(
-    #     meal_hash=dinner_06012025.get_meal_hash(),
-    #     is_daily_total=False,
-    #     entries=[
-    #         NEntry(
-    #             item="STEAK",
-    #             calories=1500,
-    #             carbs_g=12,
-    #             sugars_g=45,
-    #             protein_g=350,
-    #             fat_g=42,
-    #             fiber_g=1,
-    #             sodium_mg=14,
-    #         ),
-    #         NEntry(
-    #             item="Broccoli (Steamed)",
-    #             calories=150,
-    #             carbs_g=24,
-    #             sugars_g=1,
-    #             protein_g=2,
-    #             fat_g=15,
-    #             fiber_g=999,
-    #             sodium_mg=300,
-    #         ),
-    #     ],
-    # )
-    # nm.add_meal_breakdown(
-    #     de_06012025.date, dinner_06012025, dinner_06012025_n_breakdown
-    # )
-    # breakfast_06012025_n_breakdown_overridden = NBreakdown(
-    #     meal_hash=breakfast_06012025.get_meal_hash(),
-    #     is_daily_total=False,
-    #     entries=[
-    #         NEntry(
-    #             item="Water",
-    #             calories=0,
-    #             carbs_g=0,
-    #             sugars_g=0,
-    #             protein_g=0,
-    #             fat_g=0,
-    #             fiber_g=0,
-    #             sodium_mg=0,
-    #         ),
-    #     ],
-    # )
-    # nm.add_meal_breakdown(
-    #     de_06012025.date, breakfast_06012025, breakfast_06012025_n_breakdown_overridden
-    # )
-    #
-    # nm.write_notes("/Users/cake-icing/Documents/amkoval/daily/2025/06 June-mod.md")
-    #
-    # nm = NotesManipulator()
-    # nm.read_notes("/Users/cake-icing/Documents/amkoval/daily/2025/06 June-mod.md")
-    # de_06062025 = next(de for de in nm.entries if de.date == date(2025, 6, 6))
-    # snack_06062025 = de_06062025.sections[4]
-    # snack_06062025_breakdown = NBreakdown(
-    #     meal_hash=snack_06062025.get_meal_hash(),
-    #     is_daily_total=False,
-    #     entries=[
-    #         NEntry(
-    #             item="Peach",
-    #             calories=2,
-    #             carbs_g=2,
-    #             sugars_g=2,
-    #             protein_g=2,
-    #             fat_g=2,
-    #             fiber_g=2,
-    #             sodium_mg=2,
-    #         ),
-    #         NEntry(
-    #             item="Apricot",
-    #             calories=3,
-    #             carbs_g=3,
-    #             sugars_g=3,
-    #             protein_g=3,
-    #             fat_g=3,
-    #             fiber_g=3,
-    #             sodium_mg=3,
-    #         ),
-    #     ],
-    # )
-    # nm.add_meal_breakdown(de_06062025.date, snack_06062025, snack_06062025_breakdown)
-    # nm.write_notes("/Users/cake-icing/Documents/amkoval/daily/2025/06 June-mod.md")

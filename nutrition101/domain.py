@@ -6,6 +6,7 @@ class NEntry(BaseModel):
     calories: int
     carbs_g: int
     sugars_g: int
+    added_sugars_g: int
     protein_g: int
     fat_g: int
     fiber_g: int
@@ -19,6 +20,7 @@ class NBreakdown(BaseModel):
         total_calories = sum([e.calories for e in self.entries])
         total_carbs = sum([e.carbs_g for e in self.entries])
         total_sugars = sum([e.sugars_g for e in self.entries])
+        total_added_sugars = sum([e.added_sugars_g for e in self.entries])
         total_protein = sum([e.protein_g for e in self.entries])
         total_fat = sum([e.fat_g for e in self.entries])
         total_fiber = sum([e.fiber_g for e in self.entries])
@@ -28,6 +30,7 @@ class NBreakdown(BaseModel):
             calories=total_calories,
             carbs_g=total_carbs,
             sugars_g=total_sugars,
+            added_sugars_g=total_added_sugars,
             protein_g=total_protein,
             fat_g=total_fat,
             fiber_g=total_fiber,

@@ -14,29 +14,16 @@ CONFIG.read("config.ini")
 LLM = ClaudeNAnalyzer(api_key=CONFIG["LLM"]["ANTHROPIC_API_KEY"])
 
 
-@click.group()
-def cli(): ...
-
-
-@click.command()
-@click.argument("daily-notes-dir")
-@click.argument("nutrition-dir")
-@click.option("--only-date", type=click.DateTime(["%m/%d/%Y"]))
-@click.option("--write-notes-to", type=click.Path(writable=True))
-@click.option("--override-exitsting", is_flag=True)
-def enrich_notes(
-    daily_notes_dir: str,
+def _enrich_notes(
+    notes_file: str,
+    knowledge_base: str,
     nutrition_dir: str,
     only_date: datetime | None,
     write_notes_to: str | None,
-    override_exitsting: bool,
+    override_existing: bool,
 ):
-    today = date.today()
-    notes_file = f"{daily_notes_dir}/{today.year}/{today.strftime('%m %B.md')}"
-    knowledge_base = f"{daily_notes_dir}/{today.year}/n101/knowledge_base.md"
-
     nm = NotesManipulator(notes_file=notes_file, nutrition_dir=nutrition_dir)
-    if Path(knowledge_base).exists():
+    if Path(knowledge_base).exists() and Path(knowledge_base).is_file():
         with open(knowledge_base) as f:
             kbs = f.read()
     else:
@@ -48,7 +35,7 @@ def enrich_notes(
             click.echo(f"Skipping {daily_entry.date.isoformat()}")
             continue
 
-        if nm.is_all_meals_have_breakdowns(daily_entry.date) and not override_exitsting:
+        if nm.is_all_meals_have_breakdowns(daily_entry.date) and not override_existing:
             click.echo(
                 f"{daily_entry.date.isoformat()} already has all meal breakdowns, skipping."
             )
@@ -56,7 +43,7 @@ def enrich_notes(
 
         meals_and_breakdowns = nm.get_meal_breakdowns(daily_entry.date)
         meals_to_get_breakdowns = [
-            ms for ms, n_b in meals_and_breakdowns if n_b is None or override_exitsting
+            ms for ms, n_b in meals_and_breakdowns if n_b is None or override_existing
         ]
         print("processing", daily_entry.date, meals_to_get_breakdowns)
 
@@ -87,7 +74,63 @@ def enrich_notes(
         nm.write_notes(write_notes_to)
 
 
+@click.group()
+def cli(): ...
+
+
+@click.command()
+@click.argument("daily-notes-dir")
+@click.argument("nutrition-dir")
+@click.option("--only-date", type=click.DateTime(["%m/%d/%Y"]))
+@click.option("--write-notes-to", type=click.Path(writable=True))
+@click.option("--override-existing", is_flag=True)
+def enrich_notes(
+    daily_notes_dir: str,
+    nutrition_dir: str,
+    only_date: datetime | None,
+    write_notes_to: str | None,
+    override_existing: bool,
+):
+    today = date.today()
+    notes_file = f"{daily_notes_dir}/{today.year}/{today.strftime('%m %B.md')}"
+    knowledge_base = f"{daily_notes_dir}/{today.year}/n101/knowledge_base.md"
+    _enrich_notes(
+        notes_file,
+        knowledge_base,
+        nutrition_dir,
+        only_date,
+        write_notes_to,
+        override_existing,
+    )
+
+
+@click.command()
+@click.argument("notes-file")
+@click.argument("nutrition-dir")
+@click.option("--kbs")
+@click.option("--only-date", type=click.DateTime(["%m/%d/%Y"]))
+@click.option("--write-notes-to", type=click.Path(writable=True))
+@click.option("--override-existing", is_flag=True)
+def enrich_notes_dev(
+    notes_file: str,
+    nutrition_dir: str,
+    only_date: datetime | None,
+    write_notes_to: str | None,
+    kbs: str | None,
+    override_existing: bool,
+):
+    _enrich_notes(
+        notes_file,
+        kbs or "",
+        nutrition_dir,
+        only_date,
+        write_notes_to,
+        override_existing,
+    )
+
+
 cli.add_command(enrich_notes)
+cli.add_command(enrich_notes_dev)
 
 
 if __name__ == "__main__":
