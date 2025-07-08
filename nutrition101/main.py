@@ -30,6 +30,8 @@ def _enrich_notes(
         click.echo(f"knowledge_base at {knowledge_base} doesn't exist")
         kbs = ""
 
+    notes_need_enrichment = False
+
     for daily_entry in nm.source_entries:
         if only_date and daily_entry.date != only_date.date():
             click.echo(f"Skipping {daily_entry.date.isoformat()}")
@@ -51,12 +53,14 @@ def _enrich_notes(
             [ms.get_meal_description() for ms in meals_to_get_breakdowns], kbs
         )
 
+        notes_need_enrichment = True
+
         try:
             assert len(meal_breakdowns_llm) == len(meals_to_get_breakdowns)
         except AssertionError:
-            from ipdb import set_trace
-
-            set_trace()
+            # from ipdb import set_trace
+            #
+            # set_trace()
             raise
 
         nm.clear_breakdowns(daily_entry.date)
@@ -67,6 +71,10 @@ def _enrich_notes(
                 assert n_b_section is not None
                 n_b = n_b_section.breakdown
             nm.add_meal_breakdown(daily_entry.date, ms, n_b)
+
+    if not notes_need_enrichment:
+        click.echo("No new meals and breakdowns, skipping updating the file.")
+        return
 
     if not write_notes_to:
         nm.write_notes(notes_file)
