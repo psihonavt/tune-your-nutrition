@@ -1,17 +1,15 @@
-import configparser
+import logging
+import sys
 from datetime import datetime, date
 from pathlib import Path
+from time import time
 
 import click
 
-from nutrition101.models import ClaudeNAnalyzer
+from nutrition101.application import LLM
 from nutrition101.markdown import NotesManipulator
 
-
-CONFIG = configparser.ConfigParser()
-CONFIG.read("config.ini")
-
-LLM = ClaudeNAnalyzer(api_key=CONFIG["LLM"]["ANTHROPIC_API_KEY"])
+log = logging.getLogger("n101." + __name__)
 
 
 def _enrich_notes(
@@ -58,10 +56,13 @@ def _enrich_notes(
         try:
             assert len(meal_breakdowns_llm) == len(meals_to_get_breakdowns)
         except AssertionError:
-            # from ipdb import set_trace
-            #
-            # set_trace()
-            raise
+            log.error(
+                "%s Wanted breakdowns for %d meals, but got %d breakdowns from LLM",
+                daily_entry.date.isoformat(),
+                len(meals_to_get_breakdowns),
+                len(meal_breakdowns_llm),
+            )
+            continue
 
         nm.clear_breakdowns(daily_entry.date)
         for ms, n_b_section in meals_and_breakdowns:
@@ -99,17 +100,25 @@ def enrich_notes(
     write_notes_to: str | None,
     override_existing: bool,
 ):
+    start = time()
     today = date.today()
     notes_file = f"{daily_notes_dir}/{today.year}/{today.strftime('%m %B.md')}"
     knowledge_base = f"{daily_notes_dir}/{today.year}/n101/knowledge_base.md"
-    _enrich_notes(
-        notes_file,
-        knowledge_base,
-        nutrition_dir,
-        only_date,
-        write_notes_to,
-        override_existing,
-    )
+    try:
+        _enrich_notes(
+            notes_file,
+            knowledge_base,
+            nutrition_dir,
+            only_date,
+            write_notes_to,
+            override_existing,
+        )
+    except Exception:
+        log.exception("Error enriching daily notes.")
+        sys.exit(1)
+
+    print(time() - start)
+    log.info("Done enriching daily notes. Took %.2f seconds", time() - start)
 
 
 @click.command()

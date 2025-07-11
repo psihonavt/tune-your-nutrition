@@ -11,4 +11,5 @@ dependencies = [
     "ipython==9.3.0",
     "magentic==0.39.3",
     "pydantic==2.11.5",
+    "telethon>=1.40.0",
 ]
