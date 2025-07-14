@@ -1,8 +1,9 @@
 import configparser
 import logging
+import os
 
-from nutrition101.models import ClaudeNAnalyzer
-from nutrition101.log import TelegramLogHandler
+from nutrition101.models import ClaudeNAnalyzer, GrokAnalyzer
+from nutrition101.log import TelegramLogHandler, DebuggingHandler
 
 
 def _configure_logging():
@@ -18,9 +19,19 @@ def _configure_logging():
     logger.addHandler(t_handler)
 
 
+def _configure_logging_debug():
+    logger = logging.getLogger("n101")
+    logging.basicConfig(level=logging.INFO)
+    logger.addHandler(DebuggingHandler())
+
+
 CONFIG = configparser.ConfigParser()
 CONFIG.read("config.ini")
 
-LLM = ClaudeNAnalyzer(api_key=CONFIG["LLM"]["ANTHROPIC_API_KEY"])
+CLAUDE_LLM = ClaudeNAnalyzer(api_key=CONFIG["LLM"]["ANTHROPIC_API_KEY"])
+GROK_LLM = GrokAnalyzer(api_key=CONFIG["LLM"]["GROK_API_KEY"])
 
-_configure_logging()
+if os.environ.get("DEBUG_LOGS"):
+    _configure_logging_debug()
+else:
+    _configure_logging()
