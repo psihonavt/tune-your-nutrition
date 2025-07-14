@@ -268,17 +268,16 @@ class NotesManipulator:
         sections = daily_entry.sections.copy()
         meal_idx = sections.index(section)
         meal_content = section.lines.copy()
-        if not section.has_breakdown_link:
-            meal_name = section.get_meal_name()
-            meal_name_anchored = self._generate_breakdown_link(
-                daily_entry.date, meal_name
-            )
-            updated_meal_section = DailyEntrySection(
-                content="\n".join([meal_name_anchored] + meal_content[1:])
-            )
-            sections[meal_idx] = updated_meal_section
+        # always rewrite the anchor in case the nutrition_dir has changed
+        meal_name = section.get_meal_name()
+        meal_name_anchored = self._generate_breakdown_link(daily_entry.date, meal_name)
+        updated_meal_section = DailyEntrySection(
+            content="\n".join([meal_name_anchored] + meal_content[1:])
+        )
+        sections[meal_idx] = updated_meal_section
 
-        daily_link_section = next(
+        # the same with daily breakdown anchor
+        existing_daily_link_section = next(
             (
                 section
                 for section in sections
@@ -286,13 +285,18 @@ class NotesManipulator:
             ),
             None,
         )
-        if not daily_link_section:
-            daily_link_section = DailyEntrySection(
-                content=self._generate_breakdown_link(
-                    daily_entry.date, self._DAILY_BREAKDOWN
-                )
+
+        daily_link_section = DailyEntrySection(
+            content=self._generate_breakdown_link(
+                daily_entry.date, self._DAILY_BREAKDOWN
             )
+        )
+
+        if not existing_daily_link_section:
             sections.append(daily_link_section)
+        else:
+            sections[sections.index(existing_daily_link_section)] = daily_link_section
+
         return DailyEntry(date=daily_entry.date, sections=sections)
 
     def _add_meal_breakdown(

@@ -296,6 +296,11 @@ dependencies = [
     { name = "telethon" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "nutrition101" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "anthropic", specifier = "==0.52.2" },
@@ -306,6 +311,9 @@ requires-dist = [
     { name = "pydantic", specifier = "==2.11.5" },
     { name = "telethon", specifier = ">=1.40.0" },
 ]
+
+[package.metadata.requires-dev]
+dev = [{ name = "nutrition101", virtual = "." }]
 
 [[package]]
 name = "openai"

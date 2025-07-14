@@ -13,3 +13,11 @@ dependencies = [
     "pydantic==2.11.5",
     "telethon>=1.40.0",
 ]
+
+[dependency-groups]
+dev = [
+    "nutrition101",
+]
+
+[tool.uv.sources]
+nutrition101 = { workspace = true }
