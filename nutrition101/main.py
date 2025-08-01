@@ -7,6 +7,7 @@ from time import time
 import click
 
 from nutrition101.application import CLAUDE_LLM, GROK_LLM
+from nutrition101.helpers import get_today_date
 from nutrition101.markdown import NotesManipulator
 from nutrition101.models import ILLMAnalyzer
 
@@ -107,7 +108,7 @@ def enrich_notes(
     analyzer: str,
 ):
     start = time()
-    today = date.today()
+    today = get_today_date().date()
     notes_file = f"{daily_notes_dir}/{today.year}/{today.strftime('%m %B.md')}"
     knowledge_base = f"{daily_notes_dir}/{today.year}/n101/knowledge_base.md"
     try:

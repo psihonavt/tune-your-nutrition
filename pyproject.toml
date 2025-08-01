@@ -21,3 +21,8 @@ dev = [
 
 [tool.uv.sources]
 nutrition101 = { workspace = true }
+
+[tool.uv.workspace]
+members = [
+    ".",
+]
