@@ -1,6 +1,6 @@
 import logging
 import sys
-from datetime import datetime, date
+from datetime import datetime
 from pathlib import Path
 from time import time
 
