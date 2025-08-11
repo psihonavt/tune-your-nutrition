@@ -20,7 +20,8 @@ Meal descriptions are separated ONLY by '|||'. For example, `1 1/4 (by volume) c
     - If portion size is not specified, assume standard serving sizes
     - Include all items mentioned (main dishes, sides, beverages, condiments, etc.)
     - For prepared dishes, break down into main components when possible
-    - **IMPORTANT: Only use recipes from the Knowledge Base if the meal description explicitly mentions the recipe NAME or clearly describes the complete dish. Do NOT use a recipe just because one ingredient matches.**
+    - **IMPORTANT: Only use recipes from the Knowledge Base if the meal description explicitly mentions the recipe NAME or clearly describes the complete dish. Do NOT use a recipe just because one ingredient matches.
+      If Knowledge Base has more than one recipe with the same name, use the recipe that appears in the text the latest.**
     - **Examples of when to use Knowledge Base recipes:**
       - "Had chicken stew" → Use chicken stew recipe
       - "Made the lasagna recipe" → Use lasagna recipe
