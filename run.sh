@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# CD to the directory where this script is located
+cd "$(dirname "$0")"
+
 # Check if any file in directory was modified/created within last 10 seconds
 has_recent_files() {
   local dir_path="$1"
