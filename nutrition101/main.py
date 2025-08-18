@@ -108,7 +108,7 @@ def enrich_notes(
     analyzer: str,
 ):
     start = time()
-    today = get_today_date().date()
+    today = get_today_date()
     notes_file = f"{daily_notes_dir}/{today.year}/{today.strftime('%m %B.md')}"
     knowledge_base = f"{daily_notes_dir}/{today.year}/n101/knowledge_base.md"
     try:
