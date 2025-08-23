@@ -210,7 +210,7 @@ class NotesManipulator:
     def _get_date_from_line(line: str) -> date | None:
         date_pattern = r"\b(\d{1,2}/\d{1,2}/\d{4})\b"
         match = re.search(date_pattern, line.strip())
-        return match and datetime.strptime(match.group(), "%m/%d/%Y")
+        return match and datetime.strptime(match.group(), "%m/%d/%Y").date()
 
     def _parse_daily_entries(self, content: str) -> list[DailyEntry]:
         content_lines = content.splitlines()
