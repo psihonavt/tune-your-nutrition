@@ -77,7 +77,7 @@ def _enrich_notes(
             nm.add_meal_breakdown(daily_entry.date, ms, n_b)
 
     if not notes_need_enrichment:
-        click.echo("No new meals and breakdowns, skipping updating the file.")
+        click.echo("No new meals and breakdowns, skipping the file.")
         return False
 
     if not write_notes_to:
