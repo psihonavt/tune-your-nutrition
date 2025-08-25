@@ -77,6 +77,7 @@ class DailyEntrySection(BaseModel, Sequence):
 class DailyEntryNBreakdownSubSection(BaseModel):
     MEAL_BREAKDOWN_FIRST_COLUMN: ClassVar = "Food Item"
     DAILY_TOTAL_BREAKDOWN_FIRST_COLUMN: ClassVar = "Meal"
+    USED_KNOWLEDGE_BASE_MARKER: ClassVar = "[found in kbs]"
 
     breakdown: NBreakdown
     meal_hash: str
@@ -94,7 +95,7 @@ class DailyEntryNBreakdownSubSection(BaseModel):
         ]
         for entry in self.breakdown.entries:
             lines.append(
-                f"| {entry.item} | {entry.calories} | {entry.carbs_g} | {entry.sugars_g}({entry.added_sugars_g}) | {entry.protein_g} | {entry.fat_g} | {entry.fiber_g} | {entry.sodium_mg} |"
+                f"| {entry.item} {self.USED_KNOWLEDGE_BASE_MARKER if entry.used_knowledge_base else ''} | {entry.calories} | {entry.carbs_g} | {entry.sugars_g}({entry.added_sugars_g}) | {entry.protein_g} | {entry.fat_g} | {entry.fiber_g} | {entry.sodium_mg} |"
             )
 
         if self.is_daily_total:
@@ -148,6 +149,7 @@ class DailyEntryNBreakdownSubSection(BaseModel):
                     fat_g=int(fat_g),
                     fiber_g=int(fiber_g),
                     sodium_mg=int(sodium_mg),
+                    used_knowledge_base=cls.USED_KNOWLEDGE_BASE_MARKER in item,
                 )
             )
         n_breakdown = NBreakdown(entries=entries)

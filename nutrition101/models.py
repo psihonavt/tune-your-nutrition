@@ -14,6 +14,21 @@ Meal descriptions are separated ONLY by '|||'. For example, `1 1/4 (by volume) c
 
     Knowledge base: {knowledge_base_section}
 
+    Return Format:
+    You must return a list of NBreakdown objects. Each NBreakdown contains a list of NEntry objects with this exact schema:
+    
+    NEntry:
+    - item: str (name of the food item)
+    - calories: int (no units)
+    - carbs_g: int (no units)
+    - sugars_g: int (total sugars, no units)
+    - added_sugars_g: int (added/free sugars only, must be <= sugars_g, no units)
+    - protein_g: int (no units)
+    - fat_g: int (no units)
+    - fiber_g: int (no units)
+    - sodium_mg: int (no units)
+    - used_knowledge_base: bool (true if this item was found using Knowledge Base recipes)
+
     Instructions:
     - Break down the meal into individual food items/ingredients
     - Use realistic portion sizes based on the description
@@ -21,19 +36,20 @@ Meal descriptions are separated ONLY by '|||'. For example, `1 1/4 (by volume) c
     - Include all items mentioned (main dishes, sides, beverages, condiments, etc.)
     - For prepared dishes, break down into main components when possible
     - **IMPORTANT: Only use recipes from the Knowledge Base if the meal description explicitly mentions the recipe NAME or clearly describes the complete dish. Do NOT use a recipe just because one ingredient matches.
-      If Knowledge Base has more than one recipe with the same name, use the recipe that appears in the text the latest.**
+      If Knowledge Base has multiple recipes with the same name, use the LATEST entry (the one that appears last in the text).**
     - **Examples of when to use Knowledge Base recipes:**
-      - "Had chicken stew" → Use chicken stew recipe
-      - "Made the lasagna recipe" → Use lasagna recipe
-      - "Ate leftover beef chili" → Use beef chili recipe if available
+      - "Had chicken stew" → Use chicken stew recipe, set used_knowledge_base=true for those items
+      - "Made the lasagna recipe" → Use lasagna recipe, set used_knowledge_base=true for those items
+      - "Ate leftover beef chili" → Use beef chili recipe if available, set used_knowledge_base=true for those items
     - **Examples of when NOT to use Knowledge Base recipes:**
-      - "Had 5 baby carrots" → Just count as individual carrots, don't use chicken stew recipe
-      - "Cooked some rice" → Just count as rice, don't use any recipe containing rice
-      - "Grilled chicken breast" → Just count as chicken, don't use recipes that contain chicken
-    - If a recipe is mentioned by name but not found in the Knowledge Base, make reasonable estimates based on typical versions of that dish
+      - "Had 5 baby carrots" → Just count as individual carrots, don't use chicken stew recipe, set used_knowledge_base=false
+      - "Cooked some rice" → Just count as rice, don't use any recipe containing rice, set used_knowledge_base=false
+      - "Grilled chicken breast" → Just count as chicken, don't use recipes that contain chicken, set used_knowledge_base=false
+    - If a recipe is mentioned by name but not found in the Knowledge Base, make reasonable estimates based on typical versions of that dish, set used_knowledge_base=false
     - Provide nutritional estimates based on USDA standards or common nutritional databases
-    - All values should be numbers (no units in the values)
-    - If a nutrient value is negligible, use 0"""
+    - All values should be integers (no units in the values)
+    - If a nutrient value is negligible, use 0
+    - Set used_knowledge_base=true only when you actually used a Knowledge Base recipe for that specific item"""
 
 
 class ILLMAnalyzer(metaclass=ABCMeta):

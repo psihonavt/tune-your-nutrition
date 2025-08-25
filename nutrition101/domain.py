@@ -11,6 +11,7 @@ class NEntry(BaseModel):
     fat_g: int
     fiber_g: int
     sodium_mg: int
+    used_knowledge_base: bool
 
 
 class NBreakdown(BaseModel):
@@ -35,4 +36,5 @@ class NBreakdown(BaseModel):
             fat_g=total_fat,
             fiber_g=total_fiber,
             sodium_mg=total_sodium,
+            used_knowledge_base=False,
         )

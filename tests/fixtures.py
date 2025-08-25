@@ -1,5 +1,5 @@
 from factory.base import Factory
-from factory.fuzzy import FuzzyAttribute, FuzzyText, FuzzyInteger
+from factory.fuzzy import FuzzyAttribute, FuzzyText, FuzzyInteger, FuzzyChoice
 
 from nutrition101.domain import NBreakdown, NEntry
 
@@ -20,6 +20,7 @@ class NEntryFactory(Factory):
     fat_g = _fuzz_num
     fiber_g = _fuzz_num
     sodium_mg = _fuzz_num
+    used_knowledge_base = FuzzyChoice([True, False])
 
 
 class NBreakdownFactory(Factory):
