@@ -1,4 +1,7 @@
-from factory.base import Factory
+# pyright: reportIncompatibleVariableOverride=false
+# pyright: reportPrivateImportUsage=false
+
+from factory import Factory
 from factory.fuzzy import FuzzyAttribute, FuzzyText, FuzzyInteger, FuzzyChoice
 
 from nutrition101.domain import NBreakdown, NEntry

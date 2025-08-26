@@ -37,10 +37,20 @@ Meal descriptions are separated ONLY by '|||'. For example, `1 1/4 (by volume) c
     - For prepared dishes, break down into main components when possible
     - **IMPORTANT: Only use recipes from the Knowledge Base if the meal description explicitly mentions the recipe NAME or clearly describes the complete dish. Do NOT use a recipe just because one ingredient matches.
       If Knowledge Base has multiple recipes with the same name, use the LATEST entry (the one that appears last in the text).**
+    - **RECIPE INGREDIENT BREAKDOWN: When using a Knowledge Base recipe that contains multiple ingredients, list each ingredient from the recipe as a SEPARATE item in the breakdown instead of combining them into a single entry:**
+      - Scale each ingredient's quantity based on the number of servings consumed vs. total servings the recipe makes
+      - For example: If "1 serving pork plov" and the recipe contains "2lb pork, 1.7 cup rice, 5 mushrooms, etc." for 4 servings, then list:
+        - "Pork (0.5lb)" with nutritional values for 0.5lb pork
+        - "Rice (0.4 cup uncooked)" with nutritional values for ~0.4 cup rice
+        - "Mushrooms (1.25 whole)" with nutritional values for ~1.25 mushrooms
+        - etc.
+      - Include the scaled quantity/volume of each ingredient in the item name to show exactly how much was consumed
+      - Set used_knowledge_base=true for all these ingredient items
+      - This makes it transparent how the nutritional calculations were derived and helps identify any errors
     - **Examples of when to use Knowledge Base recipes:**
-      - "Had chicken stew" → Use chicken stew recipe, set used_knowledge_base=true for those items
-      - "Made the lasagna recipe" → Use lasagna recipe, set used_knowledge_base=true for those items
-      - "Ate leftover beef chili" → Use beef chili recipe if available, set used_knowledge_base=true for those items
+      - "Had chicken stew" → Use chicken stew recipe, list each ingredient separately, set used_knowledge_base=true for those items
+      - "Made the lasagna recipe" → Use lasagna recipe, list each ingredient separately, set used_knowledge_base=true for those items
+      - "Ate leftover beef chili" → Use beef chili recipe if available, list each ingredient separately, set used_knowledge_base=true for those items
     - **Examples of when NOT to use Knowledge Base recipes:**
       - "Had 5 baby carrots" → Just count as individual carrots, don't use chicken stew recipe, set used_knowledge_base=false
       - "Cooked some rice" → Just count as rice, don't use any recipe containing rice, set used_knowledge_base=false
