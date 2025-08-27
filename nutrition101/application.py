@@ -2,8 +2,8 @@ import configparser
 import logging
 import os
 
-from nutrition101.models import ClaudeNAnalyzer, GrokAnalyzer
-from nutrition101.log import TelegramLogHandler, DebuggingHandler
+from nutrition101.llm import ClaudeNAnalyzer, GrokAnalyzer
+from nutrition101.misc import TelegramLogHandler, DebuggingHandler
 
 
 def _configure_logging():

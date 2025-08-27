@@ -1,7 +1,7 @@
 import pytest
 
 from nutrition101.domain import NBreakdown
-from nutrition101.models import ILLMAnalyzer
+from nutrition101.llm import ILLMAnalyzer
 
 
 @pytest.fixture()

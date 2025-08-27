@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from nutrition101.markdown import NotesManipulator
+from nutrition101.obsidian import ObsidianNotesManipulator
 
 from .fixtures import NBreakdownFactory
 
@@ -38,10 +38,10 @@ def staged_notes_file(daily_notes: str):
 
 @pytest.fixture()
 def nm(staged_notes_file: str, nutrition_dir: str):
-    return NotesManipulator(staged_notes_file, nutrition_dir)
+    return ObsidianNotesManipulator(staged_notes_file, nutrition_dir)
 
 
-def test_it_reads_daily_entries(nm: NotesManipulator):
+def test_it_reads_daily_entries(nm: ObsidianNotesManipulator):
     assert len(nm.source_entries) == 3
     jul_01 = nm.source_entries[0]
     assert jul_01.date == date(2025, 7, 1)
@@ -54,7 +54,7 @@ def test_it_reads_daily_entries(nm: NotesManipulator):
 
 
 def test_it_writes_markdown(
-    nm: NotesManipulator, staged_notes_file: str, nutrition_dir: str
+    nm: ObsidianNotesManipulator, staged_notes_file: str, nutrition_dir: str
 ):
     jul_01 = nm.source_entries[0]
     breakfast, snack, lunch, dinner, tea = [s for s in jul_01.sections if s.is_meal]
@@ -67,7 +67,7 @@ def test_it_writes_markdown(
     nm.add_meal_breakdown(jul_01.date, tea, tea_b)
     nm.write_notes(None)
 
-    nm = NotesManipulator(staged_notes_file, nutrition_dir)
+    nm = ObsidianNotesManipulator(staged_notes_file, nutrition_dir)
     jul_01 = nm.source_entries[0]
     breakfast, snack, lunch, dinner, tea = [s for s in jul_01.sections if s.is_meal]
     assert all(s.has_breakdown_link for s in (breakfast, snack, lunch, dinner, tea))
