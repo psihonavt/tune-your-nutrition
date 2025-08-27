@@ -450,13 +450,6 @@ class ObsidianNotesManipulator:
         analyzer: ILLMAnalyzer,
     ) -> bool:
         nm = cls(notes_file=notes_file, nutrition_dir=nutrition_dir)
-        if Path(knowledge_base).exists() and Path(knowledge_base).is_file():
-            with open(knowledge_base) as f:
-                kbs = f.read()
-        else:
-            print(f"knowledge_base at {knowledge_base} doesn't exist")
-            kbs = ""
-
         notes_need_enrichment = False
 
         for daily_entry in nm.source_entries:
@@ -481,8 +474,9 @@ class ObsidianNotesManipulator:
             ]
             print("processing", daily_entry.date, meals_to_get_breakdowns)
 
-            meal_breakdowns_llm = analyzer.get_meals_breakdowns(
-                [ms.get_meal_description() for ms in meals_to_get_breakdowns], kbs
+            meal_breakdowns_llm = analyzer.get_meal_breakdowns(
+                [ms.get_meal_description() for ms in meals_to_get_breakdowns],
+                knowledge_base,
             )
 
             notes_need_enrichment = True

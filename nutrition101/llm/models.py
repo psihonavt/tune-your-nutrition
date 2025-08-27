@@ -10,7 +10,7 @@ from .prompts import BREAKDOWNS_FROM_MEALS
 
 class ILLMAnalyzer(metaclass=ABCMeta):
     @abstractmethod
-    def get_meals_breakdowns(
+    def get_meal_breakdowns(
         self, meal_descriptions: list[str], knowledge_base_section: str | None
     ) -> list[NBreakdown]: ...
 
@@ -24,7 +24,7 @@ class ClaudeNAnalyzer(ILLMAnalyzer):
             model=model, api_key=api_key, max_tokens=self._MAX_TOKENS
         )
 
-    def get_meals_breakdowns(
+    def get_meal_breakdowns(
         self, meal_descriptions: list[str], knowledge_base_section: str | None
     ) -> list[NBreakdown]:
         @prompt(BREAKDOWNS_FROM_MEALS, model=self._model)
@@ -49,7 +49,7 @@ class GrokAnalyzer(ILLMAnalyzer):
             base_url="https://api.x.ai/v1",
         )
 
-    def get_meals_breakdowns(
+    def get_meal_breakdowns(
         self, meal_descriptions: list[str], knowledge_base_section: str | None
     ) -> list[NBreakdown]:
         @prompt(BREAKDOWNS_FROM_MEALS, model=self._model)

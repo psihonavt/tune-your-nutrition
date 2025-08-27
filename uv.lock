@@ -142,6 +142,15 @@ wheels = [
 ]
 
 [[package]]
+name = "flexmock"
+version = "0.12.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/46/ff/ff46c8b701751a3eebfa98eb5493020c2cc68fe14b144c86b44224a666d6/flexmock-0.12.2.tar.gz", hash = "sha256:435c661c3b35477575eb9150428a1cfd7c62cb992aa7887567c3357aebc9aca1", size = 53195, upload-time = "2024-12-27T08:20:59.255Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/11/fd/a3680f79676bef325167852568f973105c97befe166cc21147f6f71b9e62/flexmock-0.12.2-py3-none-any.whl", hash = "sha256:46c5c125548af8f8906f3199efaca6d35cfee0a7ddc77cd8135f69376c3b3e23", size = 20688, upload-time = "2024-12-27T08:20:56.388Z" },
+]
+
+[[package]]
 name = "h11"
 version = "0.16.0"
 source = { registry = "https://pypi.org/simple" }
@@ -323,6 +332,7 @@ dependencies = [
     { name = "anthropic" },
     { name = "click" },
     { name = "factory-boy" },
+    { name = "flexmock" },
     { name = "ipdb" },
     { name = "ipython" },
     { name = "magentic" },
@@ -341,6 +351,7 @@ requires-dist = [
     { name = "anthropic", specifier = "==0.52.2" },
     { name = "click", specifier = ">=8.2.1" },
     { name = "factory-boy", specifier = ">=3.3.3" },
+    { name = "flexmock", specifier = ">=0.12.2" },
     { name = "ipdb", specifier = "==0.13.13" },
     { name = "ipython", specifier = "==9.3.0" },
     { name = "magentic", specifier = "==0.39.3" },

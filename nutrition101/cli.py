@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 import sys
 from datetime import datetime
 from time import time
@@ -34,11 +35,13 @@ def enrich_notes(
     start = time()
     today = get_today_date()
     notes_file = f"{daily_notes_dir}/{today.year}/{today.strftime('%m %B.md')}"
-    knowledge_base = f"{daily_notes_dir}/{today.year}/n101/knowledge_base.md"
+    knowledge_base = Path(f"{daily_notes_dir}/{today.year}/n101/knowledge_base.md")
     try:
         was_enriched = ObsidianNotesManipulator.enrich_notes(
             notes_file=notes_file,
-            knowledge_base=knowledge_base,
+            knowledge_base=knowledge_base.read_text()
+            if knowledge_base.exists()
+            else "",
             nutrition_dir=nutrition_dir,
             only_date=only_date,
             write_notes_to=write_notes_to,

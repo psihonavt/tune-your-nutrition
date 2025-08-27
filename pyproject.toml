@@ -8,6 +8,7 @@ dependencies = [
     "anthropic==0.52.2",
     "click>=8.2.1",
     "factory-boy>=3.3.3",
+    "flexmock>=0.12.2",
     "ipdb==0.13.13",
     "ipython==9.3.0",
     "magentic==0.39.3",
