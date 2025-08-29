@@ -1,1 +1,1 @@
-from .markdown import ObsidianNotesManipulator
+from .markdown import NotesManipulator, ObsidianNotesEnricher

@@ -1,3 +1,5 @@
+from datetime import date
+
 from pydantic import BaseModel
 
 
@@ -38,3 +40,9 @@ class NBreakdown(BaseModel):
             sodium_mg=total_sodium,
             used_knowledge_base=False,
         )
+
+
+class Meal(BaseModel):
+    description: str
+    date: date | None
+    tag: str

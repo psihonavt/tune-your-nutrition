@@ -7,7 +7,7 @@ from time import time
 import click
 
 from nutrition101.application import CLAUDE_LLM, GROK_LLM
-from nutrition101.obsidian import ObsidianNotesManipulator
+from nutrition101.obsidian import ObsidianNotesEnricher
 from nutrition101.misc import get_today_date
 
 log = logging.getLogger("n101." + __name__)
@@ -37,7 +37,9 @@ def enrich_notes(
     notes_file = f"{daily_notes_dir}/{today.year}/{today.strftime('%m %B.md')}"
     knowledge_base = Path(f"{daily_notes_dir}/{today.year}/n101/knowledge_base.md")
     try:
-        was_enriched = ObsidianNotesManipulator.enrich_notes(
+        was_enriched = ObsidianNotesEnricher(
+            analyzer=CLAUDE_LLM if analyzer == "claude" else GROK_LLM
+        ).enrich_notes(
             notes_file=notes_file,
             knowledge_base=knowledge_base.read_text()
             if knowledge_base.exists()
@@ -46,7 +48,6 @@ def enrich_notes(
             only_date=only_date,
             write_notes_to=write_notes_to,
             override_existing=override_existing,
-            analyzer=CLAUDE_LLM if analyzer == "claude" else GROK_LLM,
         )
     except Exception:
         log.exception("Error enriching daily notes.")
@@ -73,7 +74,7 @@ def enrich_notes_dev(
     override_existing: bool,
     analyzer: str,
 ):
-    ObsidianNotesManipulator.enrich_notes(
+    NotesManipulator.enrich_notes(
         notes_file=notes_file,
         knowledge_base=kbs or "",
         nutrition_dir=nutrition_dir,
