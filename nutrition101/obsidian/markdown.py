@@ -478,6 +478,9 @@ class ObsidianNotesEnricher:
         write_notes_to: str | None,
         override_existing: bool,
     ) -> bool:
+        assert Path(notes_file).exists(), (
+            f"Can't find the {notes_file} file with daily notes."
+        )
         nm = NotesManipulator(notes_file=notes_file, nutrition_dir=nutrition_dir)
         notes_need_enrichment = False
 
