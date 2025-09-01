@@ -9,6 +9,8 @@ from typing import Any, ClassVar
 from nutrition101.domain import NEntry, NBreakdown
 from pydantic import BaseModel
 
+from nutrition101.llm.models import ILLMAnalyzer
+
 
 class DailyEntrySection(BaseModel, Sequence):
     content: str
@@ -32,9 +34,19 @@ class DailyEntrySection(BaseModel, Sequence):
 
     @property
     def is_meal_n_breakdown(self) -> bool:
-        return self.content.strip(" ").startswith(
-            f"| {DailyEntryNBreakdownSubSection.MEAL_BREAKDOWN_FIRST_COLUMN}"
+        return (
+            self.content.strip(" ").startswith(
+                f"| {DailyEntryNBreakdownSubSection.MEAL_BREAKDOWN_FIRST_COLUMN}"
+            )
+            and DailyEntryNBreakdownSubSection.from_md_table(self.content) is not None
         )
+
+    @property
+    def n_breakdown(self) -> NBreakdown:
+        assert self.is_meal_n_breakdown or self.is_daily_n_breakdown
+        nb_section = DailyEntryNBreakdownSubSection.from_md_table(self.content)
+        assert nb_section
+        return nb_section.breakdown
 
     @property
     def is_breakdown_anchor(self) -> bool:
@@ -77,6 +89,7 @@ class DailyEntrySection(BaseModel, Sequence):
 class DailyEntryNBreakdownSubSection(BaseModel):
     MEAL_BREAKDOWN_FIRST_COLUMN: ClassVar = "Food Item"
     DAILY_TOTAL_BREAKDOWN_FIRST_COLUMN: ClassVar = "Meal"
+    USED_KNOWLEDGE_BASE_MARKER: ClassVar = "[found in kbs]"
 
     breakdown: NBreakdown
     meal_hash: str
@@ -94,7 +107,7 @@ class DailyEntryNBreakdownSubSection(BaseModel):
         ]
         for entry in self.breakdown.entries:
             lines.append(
-                f"| {entry.item} | {entry.calories} | {entry.carbs_g} | {entry.sugars_g}({entry.added_sugars_g}) | {entry.protein_g} | {entry.fat_g} | {entry.fiber_g} | {entry.sodium_mg} |"
+                f"| {entry.item} {self.USED_KNOWLEDGE_BASE_MARKER if entry.used_knowledge_base else ''} | {entry.calories} | {entry.carbs_g} | {entry.sugars_g}({entry.added_sugars_g}) | {entry.protein_g} | {entry.fat_g} | {entry.fiber_g} | {entry.sodium_mg} |"
             )
 
         if self.is_daily_total:
@@ -116,40 +129,53 @@ class DailyEntryNBreakdownSubSection(BaseModel):
         return "\n".join(lines)
 
     @classmethod
-    def from_md_table(cls, table: str) -> "DailyEntryNBreakdownSubSection":
+    def from_md_table(cls, table: str) -> "DailyEntryNBreakdownSubSection | None":
         lines = table.splitlines()
-        assert len(lines) >= 3, "Meal breakdown can't be empty"
-        assert lines[0].startswith(f"| {cls.MEAL_BREAKDOWN_FIRST_COLUMN}"), (
-            f"Not a meal breakdown! {lines[0]}"
-        )
+        if len(lines) < 2:
+            return None
+        if not lines[0].startswith(f"| {cls.MEAL_BREAKDOWN_FIRST_COLUMN}"):
+            return None
+
         hash_match = re.search(r"\((.*)\)", lines[0].split("|")[1])
         meal_hash = hash_match.group(1) if hash_match else ""
         entries = []
         for line in lines[2:]:
-            item, calories, carbs_g, sugars, protein_g, fat_g, fiber_g, sodium_mg = (
-                line.split("|")[1:-1]
-            )
-            sugars_match = re.match(r"(\d+)\((\d+)\)", sugars.strip())
-            if not sugars_match:
-                sugars_g = int(sugars)
-                added_sugars_g = 0
-            else:
-                sugars_g = int(sugars_match.group(1))
-                added_sugars_g = int(sugars_match.group(2))
+            try:
+                (
+                    item,
+                    calories,
+                    carbs_g,
+                    sugars,
+                    protein_g,
+                    fat_g,
+                    fiber_g,
+                    sodium_mg,
+                ) = line.split("|")[1:-1]
+                sugars_match = re.match(r"(\d+)\((\d+)\)", sugars.strip())
+                if not sugars_match:
+                    sugars_g = int(sugars)
+                    added_sugars_g = 0
+                else:
+                    sugars_g = int(sugars_match.group(1))
+                    added_sugars_g = int(sugars_match.group(2))
 
-            entries.append(
-                NEntry(
-                    item=item,
-                    calories=int(calories),
-                    carbs_g=int(carbs_g),
-                    sugars_g=sugars_g,
-                    added_sugars_g=added_sugars_g,
-                    protein_g=int(protein_g),
-                    fat_g=int(fat_g),
-                    fiber_g=int(fiber_g),
-                    sodium_mg=int(sodium_mg),
+                entries.append(
+                    NEntry(
+                        item=item,
+                        calories=int(calories),
+                        carbs_g=int(carbs_g),
+                        sugars_g=sugars_g,
+                        added_sugars_g=added_sugars_g,
+                        protein_g=int(protein_g),
+                        fat_g=int(fat_g),
+                        fiber_g=int(fiber_g),
+                        sodium_mg=int(sodium_mg),
+                        used_knowledge_base=cls.USED_KNOWLEDGE_BASE_MARKER in item,
+                    )
                 )
-            )
+            except (IndexError, ValueError):
+                return None
+
         n_breakdown = NBreakdown(entries=entries)
         return DailyEntryNBreakdownSubSection(
             is_daily_total=False, breakdown=n_breakdown, meal_hash=meal_hash
@@ -210,7 +236,7 @@ class NotesManipulator:
     def _get_date_from_line(line: str) -> date | None:
         date_pattern = r"\b(\d{1,2}/\d{1,2}/\d{4})\b"
         match = re.search(date_pattern, line.strip())
-        return match and datetime.strptime(match.group(), "%m/%d/%Y")
+        return match and datetime.strptime(match.group(), "%m/%d/%Y").date()
 
     def _parse_daily_entries(self, content: str) -> list[DailyEntry]:
         content_lines = content.splitlines()
@@ -343,7 +369,7 @@ class NotesManipulator:
         meal_breakdowns = [
             (
                 n101_sections[n101_sections.index(mb) - 1].get_meal_name(),
-                DailyEntryNBreakdownSubSection.from_md_table(mb.content).breakdown,
+                mb.n_breakdown,
             )
             for mb in n101_sections
             if mb.is_meal_n_breakdown
@@ -424,12 +450,95 @@ class NotesManipulator:
                                     next_section.content
                                 )
                             )
-                            if breakdown_section.meal_hash == section.get_meal_hash():
+                            if (
+                                breakdown_section
+                                and breakdown_section.meal_hash
+                                == section.get_meal_hash()
+                            ):
                                 n_breakdown = breakdown_section
                 result.append((section, n_breakdown))
         return result
 
-    def is_all_meals_have_breakdowns(self, date: date) -> bool:
+    def do_all_meals_have_breakdowns(self, date: date) -> bool:
         return all(
             n_breakdown is not None for _, n_breakdown in self.get_meal_breakdowns(date)
         )
+
+
+class ObsidianNotesEnricher:
+    def __init__(self, analyzer: ILLMAnalyzer) -> None:
+        self._analyzer = analyzer
+
+    def enrich_notes(
+        self,
+        notes_file: str,
+        knowledge_base: str,
+        nutrition_dir: str,
+        only_date: datetime | None,
+        write_notes_to: str | None,
+        override_existing: bool,
+    ) -> bool:
+        nm = NotesManipulator(notes_file=notes_file, nutrition_dir=nutrition_dir)
+        notes_need_enrichment = False
+
+        for daily_entry in nm.source_entries:
+            if only_date and daily_entry.date != only_date.date():
+                print(f"Skipping {daily_entry.date.isoformat()}")
+                continue
+
+            if (
+                nm.do_all_meals_have_breakdowns(daily_entry.date)
+                and not override_existing
+            ):
+                print(
+                    f"{daily_entry.date.isoformat()} already has all meal breakdowns, skipping."
+                )
+                continue
+
+            meals_and_breakdowns = nm.get_meal_breakdowns(daily_entry.date)
+            meals_to_get_breakdowns = [
+                ms
+                for ms, n_b in meals_and_breakdowns
+                if n_b is None or override_existing
+            ]
+            print("processing", daily_entry.date, meals_to_get_breakdowns)
+
+            meal_breakdowns_llm = self._analyzer.get_meal_breakdowns(
+                [ms.get_meal_description() for ms in meals_to_get_breakdowns],
+                knowledge_base,
+            )
+
+            notes_need_enrichment = True
+
+            try:
+                assert len(meal_breakdowns_llm) == len(meals_to_get_breakdowns)
+            except AssertionError:
+                print(
+                    "%s Wanted breakdowns for %d meals, but got %d breakdowns from LLM"
+                    % (
+                        daily_entry.date.isoformat(),
+                        len(meals_to_get_breakdowns),
+                        len(meal_breakdowns_llm),
+                    )
+                )
+                continue
+
+            nm.clear_breakdowns(daily_entry.date)
+            for ms, n_b_section in meals_and_breakdowns:
+                if ms in meals_to_get_breakdowns:
+                    n_b = meal_breakdowns_llm[meals_to_get_breakdowns.index(ms)]
+                else:
+                    assert n_b_section is not None
+                    n_b = n_b_section.breakdown
+                nm.add_meal_breakdown(daily_entry.date, ms, n_b)
+
+        if not notes_need_enrichment:
+            print("No new meals and breakdowns, skipping the file.")
+            return False
+
+        if not write_notes_to:
+            nm.write_notes(notes_file)
+        else:
+            nm.write_notes(write_notes_to)
+
+        return True

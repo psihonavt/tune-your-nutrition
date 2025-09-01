@@ -19,4 +19,4 @@ ANALYZER="${2:-grok}"
 
 # the call returns 1 when there are some recently modified files, and due to `set -e` directive, the script will exit
 has_recent_files "$DAILY_PATH"
-uv run nutrition101/main.py enrich-notes "$DAILY_PATH" n101 --analyzer="$ANALYZER"
+uv run nutrition101/cli.py enrich-notes "$DAILY_PATH" n101 --analyzer="$ANALYZER"

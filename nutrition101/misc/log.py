@@ -76,9 +76,6 @@ class DebuggingHandler(StreamHandler):
         if record.exc_info:
             traceback = self._format_exception(record, 4096 - len(msg))
             msg += traceback
-        from ipdb import set_trace
-
-        set_trace()
         stream = self.stream
         stream.write(msg + self.terminator)
         self.flush()
