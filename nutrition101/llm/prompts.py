@@ -1,5 +1,6 @@
 BREAKDOWNS_FROM_MEALS = """Analyze this meal descriptions and break them down into individual food items with their nutritional values. 
 Return total sugars in sugars_g field; the field added_sugars_g is only for added/free sugar. added_sugars_g is always <= sugars_g. 
+
 Meal descriptions are separated ONLY by '|||'. For example, `1 1/4 (by volume) cooked pinto beans, 3/4 (by volume) cooked rice, 1 Costco rotisserie chicken thigh, 1 tomatoe.
 1/6 zapekanka. 7 dried date, 4 dried figs.` is a SINGLE meal description, despite it having new lines and `.` in its content.
 
@@ -28,6 +29,7 @@ Meal descriptions are separated ONLY by '|||'. For example, `1 1/4 (by volume) c
     - If portion size is not specified, assume standard serving sizes
     - Include all items mentioned (main dishes, sides, beverages, condiments, etc.)
     - For prepared dishes, break down into main components when possible
+    - **IMPORTANT: Do not treat periods and new lines in the meal description as indication of multiple meal descriptions. Meal descriptions are ONLY separated by "|||"
     - **IMPORTANT: Only use recipes from the Knowledge Base if the meal description explicitly mentions the recipe NAME or clearly describes the complete dish. Do NOT use a recipe just because one ingredient matches.
       If Knowledge Base has multiple recipes with the same name, use the LATEST entry (the one that appears last in the text).**
     - **RECIPE INGREDIENT BREAKDOWN: When using a Knowledge Base recipe that contains multiple ingredients, list each ingredient from the recipe as a SEPARATE item in the breakdown instead of combining them into a single entry:**
