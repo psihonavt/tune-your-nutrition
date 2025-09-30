@@ -39,6 +39,7 @@ Meal descriptions are separated ONLY by '|||'. For example, `1 1/4 (by volume) c
         - "Rice (0.4 cup uncooked)" with nutritional values for ~0.4 cup rice
         - "Mushrooms (1.25 whole)" with nutritional values for ~1.25 mushrooms
         - etc.
+      - DO NOT include the meal itself (e.g., "1 serving pork plov") in the breakdown—only include its individual ingredients (because including the meal would duplicate and skew the totals since you've already broken down its components).
       - Include the scaled quantity/volume of each ingredient in the item name to show exactly how much was consumed
       - Set used_knowledge_base=true for all these ingredient items
       - This makes it transparent how the nutritional calculations were derived and helps identify any errors
