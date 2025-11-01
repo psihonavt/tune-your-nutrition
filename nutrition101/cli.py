@@ -34,13 +34,17 @@ def enrich_notes(
 ):
     start = time()
     today = get_today_date()
-    notes_file = f"{daily_notes_dir}/{today.year}/{today.strftime('%m %B.md')}"
+    notes_file = Path(f"{daily_notes_dir}/{today.year}/{today.strftime('%m %B.md')}")
+    if not notes_file.exists():
+        log.info(f"The notes files {notes_file} couldn't be found.")
+        sys.exit(1)
+
     knowledge_base = Path(f"{daily_notes_dir}/{today.year}/n101/knowledge_base.md")
     try:
         was_enriched = ObsidianNotesEnricher(
             analyzer=CLAUDE_LLM if analyzer == "claude" else GROK_LLM
         ).enrich_notes(
-            notes_file=notes_file,
+            notes_file=str(notes_file),
             knowledge_base=knowledge_base.read_text()
             if knowledge_base.exists()
             else "",
@@ -57,36 +61,7 @@ def enrich_notes(
         log.info("Done enriching daily notes. Took %.2f seconds", time() - start)
 
 
-@click.command()
-@click.argument("notes-file")
-@click.argument("nutrition-dir")
-@click.option("--kbs")
-@click.option("--only-date", type=click.DateTime(["%m/%d/%Y"]))
-@click.option("--write-notes-to", type=click.Path(writable=True))
-@click.option("--override-existing", is_flag=True)
-@click.option("--analyzer", type=click.Choice(["claude", "grok"]), default="claude")
-def enrich_notes_dev(
-    notes_file: str,
-    nutrition_dir: str,
-    only_date: datetime | None,
-    write_notes_to: str | None,
-    kbs: str | None,
-    override_existing: bool,
-    analyzer: str,
-):
-    NotesManipulator.enrich_notes(
-        notes_file=notes_file,
-        knowledge_base=kbs or "",
-        nutrition_dir=nutrition_dir,
-        only_date=only_date,
-        write_notes_to=write_notes_to,
-        override_existing=override_existing,
-        analyzer=CLAUDE_LLM if analyzer == "claude" else GROK_LLM,
-    )
-
-
 cli.add_command(enrich_notes)
-cli.add_command(enrich_notes_dev)
 
 
 if __name__ == "__main__":
