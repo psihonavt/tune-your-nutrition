@@ -1,7 +1,6 @@
 # Nutrition
 
-Nutrition is one of the pillars of our physical and mental health. Other pillars are sleep, social connections, and copious amounts of trail running.  
-There is a huge body of knowledge on nutrition on the Internet. If you've got time and curiosity, you have all the tools for making that pillar shinier and stronger.  
+Nutrition is one of the pillars of our physical and mental health. Other pillars are sleep, social connections, and copious amounts of trail running. There is a huge body of knowledge on nutrition on the Internet. If you've got time and curiosity, you have all the tools for making that pillar shinier and stronger.  
 
 For years, I've kept a short log of everything I eat throughout a day. Mainly for the sake of drawing correlations between what comes in and how I feel on a given day.
 Be it energy levels, indigestion, or other signals from my body I find interesting. I keep the food descriptions in "free-form" - I can't be bothered with writing precise numbers and portion sizes.
